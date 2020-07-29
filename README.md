@@ -20,5 +20,5 @@ the web folder contains all files needed for the website<br>
 edit website/private/congig.ini, fill in the blanks and make it fit your church<br>
 
 <h2>Key pages</h2>
-https://yourURL.com - make a reservation
-https://yourURL.com/checkin - the ushers checkin page (login required)
+https://yourURL.com - make a reservation<br>
+https://yourURL.com/checkin - the ushers checkin page (login required)<br>
