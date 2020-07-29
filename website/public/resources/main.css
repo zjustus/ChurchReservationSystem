@@ -1,0 +1,19 @@
+body{
+	background-color: black;
+	margin: auto;
+}
+#reservationForm{
+	background-color: white;
+	border-radius: 10pt;
+	padding-bottom: 10pt;
+	padding-top: 10pt;
+}
+#headding{
+	color: white;
+}
+
+.login-form{
+	background-color: white;
+	padding: 15pt;
+	border-radius: 10pt;
+}
