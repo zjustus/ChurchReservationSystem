@@ -27,54 +27,71 @@ add feedback overlays, error or otherwise
 
 */
 $reservationExists = false;
+$allGoodInfo = true;
+$partySizeTooLarge=false;
+$reservationCreated = false;
+
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
-    if(!empty($_POST['phone']) && !empty($_POST['party']) && !empty($_POST['date']) && !empty($_POST['partyName'])){
-		if(validatePhone($_POST['phone']) && validatePartySize($_POST['party']) && $sunday = validateReservationDate($_POST['date'])){
-			$phoneNumber = validatePhone($_POST['phone']);
-			$takenSeats = $config['venue']['maxCapasity'] - Reservation::takenSeats($sunday);
-			if($takenSeats >= $_POST['party']){
-				//check if person exists, if not make him
-				$person = new User();
-				if(empty($person->getPersonByPhone($phoneNumber))){ //if phone dosent exist
-					$person->setPhoneNumber($phoneNumber);
-					$person->createPerson();
-				}
-				//chekc if an active regestration exists
-				$reservations = $person->getReservations();
-				if(empty($reservations)){
-					$reservation = new Reservation();
-					$reservation->setUserID($person->getUserID());
-                    $reservation->setPartyName($_POST['partyName']);
-					$reservation->setReservationDate($sunday);
-					$reservation->setPartySize($_POST['party']);
+    //if(!empty($_POST['phone']) && !empty($_POST['party']) && !empty($_POST['date']) && !empty($_POST['partyName'])){
+	if(!empty($_POST['phone']) && !empty($_POST['adultCount']) && !empty($_POST['date']) && !empty($_POST['partyName'])){
+		if(validatePhone($_POST['phone']) && $sunday = validateReservationDate($_POST['date'])){
+			if(validatePartySize($_POST['adultCount'] + $_POST['kidCount']) && validateAdultCount($_POST['adultCount']) && validateKidCount($_POST['kidCount'])){
+				$phoneNumber = validatePhone($_POST['phone']);
+				
+				if(empty($_POST['kidCount'])) $kidCount = 0;
+				else $kidCount = $_POST['kidCount'];
 
-					$reservation->createReservation();
-                    $twilio = new \Twilio\Rest\Client($config['twilio']['ssid'], $config['twilio']['authToken']);
+				$takenSeats = $config['venue']['maxCapasity'] - Reservation::takenSeats($sunday);
 
-                    $messageBody = $config['twilio']['reservationMessage'].' '.$config['venue']['url'].'/reservation.php?reservation='.$reservation->getReservationToken();
-                    try {
-                        $twilio->messages->create(
-                            '+19099124317',
-                            [
-                                'from' => $config['twilio']['phoneNumber'],
-                                'body' => $config['twilio']['reservationMessage'].' '.$config['venue']['url'].'/reservation.php?reservation='.$reservation->getReservationToken(),
-                            ]
-                        );
-                    } catch (Exception $e) {
-                        //echo 'Caught exception: ',  $e->getMessage(), "\n";
-                        echo "an error occured";
-                    }
-				}
-				//TODO: if the reservation already exists
-				else {
-                    $reservationExists = true;
-					//echo 'Error, you already have an active reservation going<br>';
-					//echo '<a href="https://reserve.luminate.church/reservation.php?reservation='.$reservations[0]['reservation_token'].'">Click here to view reservation</a><br>';
-				}
+				if($takenSeats >= $_POST['party']){
+					//check if person exists, if not make him
+					$person = new User();
+					if(empty($person->getPersonByPhone($phoneNumber))){ //if phone dosent exist
+						$person->setPhoneNumber($phoneNumber);
+						$person->createPerson();
+					}
+					//chekc if an active regestration exists
+					$reservations = $person->getReservations();
+					if(empty($reservations)){
+						$reservation = new Reservation();
+						$reservation->setUserID($person->getUserID());
+						$reservation->setPartyName($_POST['partyName']);
+						$reservation->setReservationDate($sunday);
+						//$reservation->setPartySize($_POST['party']);
+						$reservation->setAdultCount($_POST['adultCount']);
+						$reservation->setKidCount($kidCount);
 
-			}
+						$reservation->createReservation();
+						$twilio = new \Twilio\Rest\Client($config['twilio']['ssid'], $config['twilio']['authToken']);
+						$reservationCreated = true;
+						$messageBody = $config['twilio']['reservationMessage'].' '.'https://reserve.luminate.church/reservation.php?reservation='.$reservation->getReservationToken();
+						try {
+							$twilio->messages->create(
+								'+1'.$person->getPhoneNumber(),
+								[
+									'from' => $config['twilio']['phoneNumber'],
+									'body' => $config['twilio']['reservationMessage'].' '.'https://reserve.luminate.church/reservation.php?reservation='.$reservation->getReservationToken(),
+								]
+							);
+						} catch (Exception $e) {
+							//echo 'Caught exception: ',  $e->getMessage(), "\n";
+							echo "an error occured";
+						}
+					}
+					//TODO: if the reservation already exists
+					else {
+						$reservationExists = true;
+						//echo 'Error, you already have an active reservation going<br>';
+						//echo '<a href="https://reserve.luminate.church/reservation.php?reservation='.$reservations[0]['reservation_token'].'">Click here to view reservation</a><br>';
+					}
+
+				}
+			} else $partySizeTooLarge = true;
         }
     }
+	else{
+		$allGoodInfo = false;
+	}
 }
 
 
@@ -90,6 +107,22 @@ function validatePartySize($partySize){
     global $config;
     if(is_numeric($partySize)){
         if($partySize >= 1 && $partySize <= $config['venue']['maxPartySize']){
+            return true;
+        } else return false;
+    } else return false;
+}
+function validateAdultCount($partySize){
+    global $config;
+    if(is_numeric($partySize)){
+        if($partySize >= 1 && $partySize <= $config['venue']['maxAdults']){
+            return true;
+        } else return false;
+    } else return false;
+}
+function validateKidCount($partySize){
+    global $config;
+    if(is_numeric($partySize)){
+        if($partySize >= 0 && $partySize <= $config['venue']['maxKids']){
             return true;
         } else return false;
     } else return false;
@@ -143,7 +176,11 @@ function validateReservationDate($reservationDate){ //validates the service is g
  	}
  </style>
 
-<?php if($reservationExists) Overlay::message('exists-overlay', '<h2>Reservation already exists</h2><br><a href="/reservation.php?reservation='.$reservations[0]['reservation_token'].'"><button type="button" class="btn btn-info btn-block" name="button">View reservation</button></a><br>'); ?>
+<?php if($reservationExists) Overlay::message('exists-overlay', '<h2>Reservation already exists</h2><br><a href="https://reserve.luminate.church/reservation.php?reservation='.$reservations[0]['reservation_token'].'"><button type="button" class="btn btn-info btn-block" name="button">View reservation</button></a><br>'); ?>
+<?php if(!$allGoodInfo) Overlay::message('bad-input-overlay', '<h2>Invalid Input</h2><br>');?>
+<?php if($partySizeTooLarge) Overlay::message('bad-input-overlay', '<h2>Party is too large</h2><br><p>You cannot have more than '.$config['venue']['maxPartySize'].' members in your party<br>You cannot have more than '.$config['venue']['maxAdults'].' Adults<br>You cannot have more than '.$config['venue']['maxKids'].' Children<br></p>');?>
+<?php if($reservationCreated) Overlay::message('valid-input-overlay', '<h2>Thank you!</h2><br><p>We sent a text to your phone with a link to the reservation</p><br>');?>
+
 <div class="container-fluid">
 	<div class="row justify-content-center">
 		<div class="col text-center" id="headding">
@@ -155,20 +192,28 @@ function validateReservationDate($reservationDate){ //validates the service is g
 			<form method="post">
 				<div class="form-group">
 					<label for="phoneInput">Phone Number</label>
-					<input class="form-control" id="phoneInput" type="text" placeholder="(123) 456-7890" name="phone" onkeydown="javascript:backspacerDOWN(this,event);" onkeyup="javascript:backspacerUP(this,event);">
+					<input class="form-control" id="phoneInput" type="text" placeholder="(555) 123-4567" name="phone" required onkeydown="javascript:backspacerDOWN(this,event);" onkeyup="javascript:backspacerUP(this,event);">
+					<!-- <div class="invalid-feedback">Number is Invalid</div> -->
 				</div>
                 <div class="form-group">
                     <label for="partyNameInput">Party Name</label>
-                    <input class="form-control" id="partyNameInput" type="text" name="partyName" placeholder="Ex: Donner Party">
+                    <input class="form-control" id="partyNameInput" type="text" name="partyName" placeholder="Ex: John Doe" required>
+					<!-- <div class="invalid-feedback">Party Name is Invalid</div> -->
                 </div>
 				<div class="form-group">
-					<label for="partySizeInput">Party Size</label>
-					<input class="form-control" id="partySizeInput" type="number" name="party" min="1" max="<?php echo $config['venue']['maxPartySize']; ?>">
+					<label for="adultCountInput">Adults</label>
+					<input class="form-control" id="adultCountInput" type="number" name="adultCount" min="1" max="<?php echo $config['venue']['maxAdults']; ?>" required>
+					<!-- <div class="invalid-feedback">Party size must be at least 1 and no larger than <?php echo $config['venue']['maxAdults']; ?></div> -->
+				</div>
+				<div class="form-group">
+					<label for="kidCountInput">Kids</label>
+					<input class="form-control" id="kidCountInput" type="number" name="kidCount" min="0" value="0" max="<?php echo $config['venue']['maxKids']; ?>" required>
+					<!-- <div class="invalid-feedback">You cant have more than <?php echo $config['venue']['maxKids']; ?> kids in your party</div> -->
 				</div>
 				<div class="form-group">
 					<div id="dateAccordion">
 						<?php
-						/*This block finds the next sunday */
+						/*This block finds the next service day */
 						$sunday = new DateTime();
 						$sunday->sub(new DateInterval('PT2H')); //time zone correction (-2H)
 
@@ -193,14 +238,11 @@ function validateReservationDate($reservationDate){ //validates the service is g
 									<div class="form-check">
 										<input class="form-check-input" id="<?php echo 'dateRatio'.$i.'-'.$j; ?>" type="radio" name="date" value="<?php
 		                                echo $sunday->format('Y-m-d').' '.$time.':00';
-										?>">
+										?>" checked="<?php echo (i == 0 && j == 0? 'true' : 'false') ?>">
 										<label class="form-check-label" for="<?php echo 'dateRatio'.$i.'-'.$j; ?>">
 											<?php
                                             $service = new DateTime($sunday->format('Y-m-d').' '.$time.':00');
                                             echo $service->format('g:i A');
-                                            //if($j == 0) echo '9:30am';
-											//else if($j == 1) echo '11:00am';
-											//else if($j == 2) echo '1:30pm (Spanish)';
 											 ?>
 										</label>
 									</div>
@@ -209,7 +251,7 @@ function validateReservationDate($reservationDate){ //validates the service is g
 							</div>
 						</div>
 						<?php
-						$sunday->add(new DateInterval('P7D')); //increment to next sunday
+						$sunday->add(new DateInterval('P7D')); //increment to next service day
 						} ?>
 					</div>
 				</div>

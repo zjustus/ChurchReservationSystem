@@ -15,7 +15,7 @@ $checkinPage = $path."/../private/checkin/main.php";
 require_once $usersClass;
 require_once $reservaionClass;
 require_once $overlayPath;
-//require_once $headder;
+require_once $headder;
 
 
 // this starts the session and check if loged in
@@ -101,7 +101,22 @@ if(!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
                         <div class="card-body">
                         <?php
                         $reservation = new Reservation;
-                        if($reservation->getReservationByToken($_GET['reservationToken'])){ //if the reservation exists
+
+						//this grabs the reservation provided a phone number or reservation token
+						$reservationToken = NULL;
+                        if(empty($_GET['reservationToken']) && !empty($_GET['phone'])){
+							$user = new User;
+							if(!empty($user->getPersonByPhone($_GET['phone']))){
+								$reservationToken = $user->getReservations();
+								$reservationToken = $reservationToken[0]["reservation_token"];							
+							}
+						} else {
+							$reservationToken = $_GET['reservationToken'];
+						}
+
+
+						if($reservation->getReservationByToken($reservationToken)){ //if the reservation exists
+
 							if($_SERVER['REQUEST_METHOD'] === 'POST' && $reservation->getStatus() == 1){
 								if($_POST['checkinAction'] == 1) $reservation->setStatus(2); //2 is checked in
 								else if($_POST['checkinAction'] == 0) $reservation->setStatus(0); //0 -- cancled
@@ -123,8 +138,12 @@ if(!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
 									?>
 								</li>
                                 <li class="list-group-item">
-                                    <span class="text-muted">Party size: </span>
-                                    <span><?php echo $reservation->getPartySize(); ?></span>
+                                    <span class="text-muted">Adults: </span>
+                                    <span><?php echo $reservation->getAdultCount(); ?></span>
+                                </li>
+								<li class="list-group-item">
+                                    <span class="text-muted">Kids: </span>
+                                    <span><?php echo $reservation->getKidCount(); ?></span>
                                 </li>
                             </ul>
                             <div class="card-body">
@@ -143,7 +162,7 @@ if(!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
 								<h2 class="text-center">Check-In Unavailable</h2>
 							<?php } ?>
                                 <br>
-                                <a href="/checkin/"><button class="btn btn-block btn-secondary btn-lg">Scan Again</button></a>
+                                <a href="https://reserve.luminate.church/checkin/"><button class="btn btn-block btn-secondary btn-lg">Scan Again</button></a>
                             </div>
                         <?php
                         } else { //if the reservation doesent exist
@@ -151,7 +170,7 @@ if(!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
                             <h1 class="card-title">No Reservation Exists</h1>
                             <h6 class="card-subtitle text-muted">Please scann again</h6>
                             <div class="card-body">
-                                <a href="/checkin/"><button class="btn btn-block btn-primary btn-lg">Scan Again</button></a>
+                                <a href="https://reserve.luminate.church/checkin/"><button class="btn btn-block btn-primary btn-lg">Scan Again</button></a>
                             </div>
                         <?php
                         } ?>

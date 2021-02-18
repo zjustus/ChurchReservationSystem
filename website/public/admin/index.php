@@ -15,10 +15,26 @@ if(!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
   exit;
 }
 
+
+
+
+
+$sunday = new DateTime();
+$sunday->sub(new DateInterval('PT2H'));
+
 ?>
 
 <h1>Administration Page</h1>
-<h2>class testing for now</h2>
+<p>This page does 1 thing and I hope it does it well</p>
+
+<form action="/admin/attendance.php" target="_blank" method="GET">
+<p>Start Date</p>
+<input type="date" name="startDate" id="">
+<p>End Date</p>
+<input type="date" name="endDate" id="">
+<button type="submit">Get Data</button>
+
+</form>
 
 
 

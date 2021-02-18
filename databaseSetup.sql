@@ -8,7 +8,8 @@ create table reservations(
 	reservation_token varchar(255) not null,
 	user_id int not null,
 	reservation_date datetime not null,
-	party_size int not null,
 	status int,
+	adult_count int not null,
+	kid_count int,
 	foreign key (user_id) references users(user_id)
 );

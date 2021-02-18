@@ -77,7 +77,7 @@ class User{
 				$queryPerson = $result->fetch_assoc();
 				if(!empty($queryPerson)){
 					$this->userID = $queryPerson['user_id'];
-					$this->phone_number = $phoneNumber;
+					$this->phoneNumber = $phoneNumber;
 				}
 
 				$stmnt->free_result();
@@ -107,8 +107,8 @@ class User{
 			$today = new DateTime();
 			$today->sub(new DateInterval('PT2H')); //time zone correction (-2H)
 			$sql = '';
-			if($active) $sql = 'SELECT reservation_id, reservation_token, reservation_date, party_size FROM reservations where user_id = ? AND reservation_date >= ? AND status = 1';
-			else $sql = 'SELECT reservation_id, reservation_token, reservation_date, party_size FROM reservations where user_id = ?';
+			if($active) $sql = 'SELECT reservation_id, reservation_token, reservation_date, adult_count, kid_count FROM reservations where user_id = ? AND reservation_date >= ? AND status = 1';
+			else $sql = 'SELECT reservation_id, reservation_token, reservation_date, adult_count, kid_count FROM reservations where user_id = ?';
 			$mysqli = db_connect();
 			if($stmnt = $mysqli->prepare($sql)){
 				if($active) $stmnt->bind_param('is', $this->userID, $today->format('Y-m-d H:i:s'));

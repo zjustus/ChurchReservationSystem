@@ -52,7 +52,8 @@ if($_POST['cancelReservation'] == 'true' && !empty($_GET['reservation'])){
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item">Status: <?php if($reservation->isActive()){ ?><span class="text-success">Active</span><?php }else { ?><span class="text-danger">Inactive</span><?php } ?></li>
                     <li class="list-group-item">Party Name: <?php echo $reservation->getPartyName(); ?></li>
-                    <li class="list-group-item">Party size: <?php echo $reservation->getPartySize(); ?></li>
+                    <li class="list-group-item">Adults: <?php echo $reservation->getAdultCount(); ?></li>
+                    <li class="list-group-item">Kids: <?php echo $reservation->getKidCount(); ?></li>
                     <li class="list-group-item"><?php echo "Phone: ".$person->getPhoneNumber(); ?></li>
                 </ul>
                 <div class="card-body">

@@ -4,6 +4,11 @@ if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true){
   header('location: /checkin/index.php');
 }
 
+if($_SERVER['HTTP_X_FORWARDED_PROTO']!='https') {
+	$redirect= 'https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+	header('Location:'.$redirect);
+}
+
 $path = $_SERVER['DOCUMENT_ROOT'];
 $configFile = $path.'/../private/config.ini';
 $config = parse_ini_file($configFile, true);
